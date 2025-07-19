@@ -1,0 +1,30 @@
+# Carpeta bin y obj
+[Bb]in/
+[Oo]bj/
+
+# Archivos de configuración local
+*.user
+*.suo
+*.sdf
+*.vspscc
+*.config
+
+# Archivos de caché
+*.cache
+*.tmp
+
+# Archivos generados por el IDE (Visual Studio)
+.vs/
+*.csproj.user
+*.csproj.vspscc
+
+# Archivos de despliegue
+*.nupkg
+*.vsix
+
+# Archivos de registro
+*.log
+
+# Archivos de herramientas
+*.bak
+*.swp
