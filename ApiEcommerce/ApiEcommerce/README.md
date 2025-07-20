@@ -34,3 +34,9 @@ builder.Services.AddControllers();
 ### SQL Server
 
 - Para correr **SQL Server** ejecutar el `docker compose up -d` para que ejecuté el contenedor de **_Docker_**. _(Nota: Es necesario tener Docker Deskop abierto antes de ejecutar el comando.)_
+
+### Swagger
+
+```
+http://localhost:5147/swagger/index.html
+```
