@@ -27,9 +27,11 @@ builder.Services.AddControllers();
 
 3. Agregar nuevo paquete con NuGet `dotnet add package Microsoft.EntityFrameworkCore.Design`.
 
-4. Ejecutar las migraciones `dotnet ef migrations add InitialMigration`. **_(InitialMigration es para asignarle el nombre a esa migración)_**
+4. Crear una nueva migración `dotnet ef migrations add InitialMigration`. **_(InitialMigration es para asignarle el nombre a esa migración)_**
 
-5. Para actualizar la base de datos `dotnet ef database update`.
+5. Eliminar la última migración `dotnet ef migrations remove`.
+
+6. Para actualizar la base de datos `dotnet ef database update`.
 
 ### SQL Server
 
