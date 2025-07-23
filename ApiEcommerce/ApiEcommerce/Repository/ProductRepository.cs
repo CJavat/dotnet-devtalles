@@ -94,7 +94,10 @@ public class ProductRepository : IProductRepository
     if (!string.IsNullOrEmpty(searchTerm))
     {
       query = query.Include(p => p.Category)
-                    .Where(p => p.Name.ToLower().Trim().Contains(searchTerm.ToLower().Trim()));
+                    .Where(
+                      p => p.Description.ToLower().Trim().Contains(searchTerm.ToLower().Trim()) ||
+                      p.Description.ToLower().Trim().Contains(searchTerm.ToLower().Trim())
+                    );
     }
 
     return query.OrderBy(p => p.Name).ToList();
