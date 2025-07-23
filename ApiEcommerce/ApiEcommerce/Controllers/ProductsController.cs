@@ -79,5 +79,35 @@ namespace ApiEcommerce.Controllers
             var productDto = _mapper.Map<ProductDto>(createdProduct);
             return CreatedAtRoute("GetProduct", new { productId = product.ProductId }, productDto);
         }
+
+        [HttpGet("searchProductByCategory/{categoryId:int}", Name = "GetProductsForCategory")]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public IActionResult GetProductsForCategory(int categoryId)
+        {
+            var products = _productRepository.GetProductsForCategory(categoryId);
+            if (products.Count == 0) return NotFound($"Los productos con la categoría {categoryId} no existe.");
+
+            var productsDto = _mapper.Map<List<ProductDto>>(products);
+
+            return Ok(productsDto);
+        }
+
+        [HttpGet("searchProductByNameDescription/{searchTerm}", Name = "SearchProducts")]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public IActionResult SearchProducts(string searchTerm)
+        {
+            var products = _productRepository.SearchProducts(searchTerm);
+            if (products.Count == 0) return NotFound($"Los productos con el nombre o descripción '{searchTerm}' no existe.");
+
+            var productsDto = _mapper.Map<List<ProductDto>>(products);
+
+            return Ok(productsDto);
+        }
     }
 }
