@@ -91,12 +91,13 @@ public class ProductRepository : IProductRepository
   public ICollection<Product> SearchProducts(string searchTerm)
   {
     IQueryable<Product> query = _db.Products;
+    var searchTermLowered = searchTerm.ToLower().Trim();
     if (!string.IsNullOrEmpty(searchTerm))
     {
       query = query.Include(p => p.Category)
                     .Where(
-                      p => p.Description.ToLower().Trim().Contains(searchTerm.ToLower().Trim()) ||
-                      p.Description.ToLower().Trim().Contains(searchTerm.ToLower().Trim())
+                      p => p.Description.ToLower().Trim().Contains(searchTermLowered) ||
+                      p.Description.ToLower().Trim().Contains(searchTermLowered)
                     );
     }
 
