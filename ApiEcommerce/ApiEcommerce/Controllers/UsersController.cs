@@ -2,11 +2,13 @@ using ApiEcommerce.Models;
 using ApiEcommerce.Models.Dtos;
 using ApiEcommerce.Repository.IRepository;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiEcommerce.Controllers
 {
+    [Authorize(Roles = "Admin")]
     [Route("api/[controller]")]
     [ApiController]
     public class UsersController : ControllerBase
@@ -44,9 +46,8 @@ namespace ApiEcommerce.Controllers
             return Ok(usersDto);
         }
 
-        // public IActionResult IsUniqueUser(string username) {}
-
-        [HttpPost(Name = "RegisterUser")]
+        [AllowAnonymous]
+        [HttpPost("Register", Name = "RegisterUser")]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -63,6 +64,7 @@ namespace ApiEcommerce.Controllers
             return CreatedAtRoute("GetUser", new { id = result.Id }, result);
         }
 
+        [AllowAnonymous]
         [HttpPost("Login", Name = "LoginUser")]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -77,5 +79,6 @@ namespace ApiEcommerce.Controllers
             return Ok(user);
         }
 
+        // public IActionResult IsUniqueUser(string username) {}
     }
 }
