@@ -2,6 +2,7 @@ using System.Text;
 using ApiEcommerce.Constants;
 using ApiEcommerce.Repository;
 using ApiEcommerce.Repository.IRepository;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -86,9 +87,59 @@ builder.Services.AddSwaggerGen(
         new List<string>()
       }
     });
+
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+      Version = "v1",
+      Title = "API Ecommerce",
+      Description = "API para gestionar productos y usuarios.",
+      TermsOfService = new Uri("http://example.com/terms"),
+      Contact = new OpenApiContact
+      {
+        Name = "FSociety",
+        Url = new Uri("http://github.com/cjavat")
+      },
+      License = new OpenApiLicense
+      {
+        Name = "Licencia de uso",
+        Url = new Uri("http://example.com/license")
+      }
+    });
+
+    options.SwaggerDoc("v2", new OpenApiInfo
+    {
+      Version = "v2",
+      Title = "API Ecommerce v2",
+      Description = "API para gestionar productos y usuarios.",
+      TermsOfService = new Uri("http://example.com/terms"),
+      Contact = new OpenApiContact
+      {
+        Name = "FSociety",
+        Url = new Uri("http://github.com/cjavat")
+      },
+      License = new OpenApiLicense
+      {
+        Name = "Licencia de uso",
+        Url = new Uri("http://example.com/license")
+      }
+    });
   }
 
 );
+
+// Habilitar versionamiento de API
+var apiVersioningBuilder = builder.Services.AddApiVersioning(option =>
+{
+  option.AssumeDefaultVersionWhenUnspecified = true;
+  option.DefaultApiVersion = new ApiVersion(1.0);
+  option.ReportApiVersions = true;
+  // option.ApiVersionReader = ApiVersionReader.Combine(new QueryStringApiVersionReader("api-version")); // /?api-version 
+});
+apiVersioningBuilder.AddApiExplorer(option =>
+{
+  option.GroupNameFormat = "'v'VVV";// v1, v2, v3...
+  option.SubstituteApiVersionInUrl = true; // api/v{version}/"products"
+});
 
 // Habilitar CORS
 builder.Services.AddCors(options =>
@@ -110,7 +161,12 @@ if (app.Environment.IsDevelopment())
 {
   app.MapOpenApi();
   app.UseSwagger();
-  app.UseSwaggerUI();
+  app.UseSwaggerUI(options =>
+  {
+    options.EnableSwaggerDocumentUrlsEndpoint();
+    options.SwaggerEndpoint("/swagger/v2/swagger.json", "v2");
+    options.SwaggerEndpoint("/swagger/v2/swagger.json", "v2");
+  });
 
 }
 
