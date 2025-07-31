@@ -164,7 +164,7 @@ if (app.Environment.IsDevelopment())
   app.UseSwaggerUI(options =>
   {
     options.EnableSwaggerDocumentUrlsEndpoint();
-    options.SwaggerEndpoint("/swagger/v2/swagger.json", "v2");
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
     options.SwaggerEndpoint("/swagger/v2/swagger.json", "v2");
   });
 
