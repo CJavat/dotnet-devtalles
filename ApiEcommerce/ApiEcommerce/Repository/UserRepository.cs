@@ -4,6 +4,8 @@ using System.Text;
 using ApiEcommerce.Models;
 using ApiEcommerce.Models.Dtos;
 using ApiEcommerce.Repository.IRepository;
+using AutoMapper;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -15,10 +17,23 @@ public class UserRepository : IUserRepository
   public readonly ApplicationDbContext _db;
   private string? secretKey;
 
-  public UserRepository(ApplicationDbContext db, IConfiguration configuration)
+  private readonly UserManager<ApplicationUser> _userManager;
+  private readonly RoleManager<ApplicationUser> _roleManager;
+  private readonly IMapper _mapper;
+
+  public UserRepository(
+    ApplicationDbContext db,
+    IConfiguration configuration,
+    UserManager<ApplicationUser> userManager,
+    RoleManager<ApplicationUser> roleManager,
+    IMapper mapper
+  )
   {
     _db = db;
     secretKey = configuration.GetValue<string>("ApiSettings:SecretKey"); // Para leer la variable de entorno.
+    _userManager = userManager;
+    _roleManager = roleManager;
+    _mapper = mapper;
   }
 
   public User? GetUser(int id)
@@ -40,23 +55,30 @@ public class UserRepository : IUserRepository
   {
     if (string.IsNullOrEmpty(userLoginDto.Username)) return UserResponse("", "El username es obligatorio.");
 
-    var user = await _db.Users.FirstOrDefaultAsync<User>(u => u.Username.ToLower().Trim() == userLoginDto.Username.ToLower().Trim());
+    var user = await _db.ApplicationUser.FirstOrDefaultAsync<ApplicationUser>(u => u.UserName != null && u.UserName.ToLower().Trim() == userLoginDto.Username.ToLower().Trim());
 
     if (user == null) return UserResponse("", "El username no encontrado.");
-    if (!BCrypt.Net.BCrypt.Verify(userLoginDto.Password, user.Password)) return UserResponse("", "La contraseña es incorrecta.");
+
+    //Sin usar identity -> if (!BCrypt.Net.BCrypt.Verify(userLoginDto.Password, user.Password)) return UserResponse("", "La contraseña es incorrecta.");
+
+    if (userLoginDto.Password == null) return UserResponse("", "El password es obligatorio.");
+    bool isValid = await _userManager.CheckPasswordAsync(user, userLoginDto.Password);
+    if (!isValid) return UserResponse("", "Las credenciales son incorrectas.");
+
 
     // JWT Generate
     var handlerToken = new JwtSecurityTokenHandler();
     if (string.IsNullOrWhiteSpace(secretKey)) throw new InvalidOperationException("El SecretKey no está configurada.");
 
+    var roles = await _userManager.GetRolesAsync(user); // Identity
     var key = Encoding.UTF8.GetBytes(secretKey);
     var tokenDescriptor = new SecurityTokenDescriptor
     {
       Subject = new ClaimsIdentity(new[]
       {
         new Claim("id", user.Id.ToString()),
-        new Claim("username", user.Username),
-        new Claim(ClaimTypes.Role, user.Role ?? string.Empty),
+        new Claim("username", user.UserName ?? string.Empty),
+        new Claim(ClaimTypes.Role, roles.FirstOrDefault() ?? string.Empty),
       }),
       Expires = DateTime.UtcNow.AddHours(2),
       SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
@@ -67,7 +89,7 @@ public class UserRepository : IUserRepository
     return UserResponse(
       handlerToken.WriteToken(token),
       "Usuario Logeado Correctamente.",
-      new UserRegisterDto() { Username = user.Username, Name = user.Name, Role = user.Role, Password = user.Password ?? "" }
+      _mapper.Map<UserDataDto>(user)
     );
   }
 
@@ -90,7 +112,7 @@ public class UserRepository : IUserRepository
   }
 
   // Método para regresar un mensaje personalizado.
-  private UserLoginResponseDto UserResponse(string token, string message, UserRegisterDto? user = null)
+  private UserLoginResponseDto UserResponse(string token, string message, UserDataDto? user = null)
   {
     return new UserLoginResponseDto()
     {
