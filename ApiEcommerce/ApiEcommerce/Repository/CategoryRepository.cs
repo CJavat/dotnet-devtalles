@@ -12,7 +12,7 @@ public class CategoryRepository : ICategoryRepository
     _db = db;
   }
 
-  public ICollection<Category> Categories()
+  public ICollection<Category> GetCategories()
   {
     return _db.Categories.OrderBy(c => c.Name).ToList();
   }

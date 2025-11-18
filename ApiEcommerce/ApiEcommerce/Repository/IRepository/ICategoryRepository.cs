@@ -4,7 +4,7 @@ namespace ApiEcommerce.Repository.IRepository;
 
 public interface ICategoryRepository
 {
-  ICollection<Category> Categories();
+  ICollection<Category> GetCategories();
   Category GetCategory(int id);
   bool CategoryExists(int id);
   bool CategoryExists(string name);
