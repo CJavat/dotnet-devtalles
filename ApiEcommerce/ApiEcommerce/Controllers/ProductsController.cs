@@ -47,7 +47,6 @@ namespace ApiEcommerce.Controllers
             return Ok(productDto);
         }
 
-
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -81,6 +80,36 @@ namespace ApiEcommerce.Controllers
             var createdProduct = _productRepository.GetProduct(product.ProductId);
             var productDto = _mapper.Map<ProductDto>(createdProduct);
             return CreatedAtRoute("GetProduct", new { productId = product.ProductId }, productDto);
+        }
+
+        [HttpGet("searchProductByCategory/{categoryId:int}", Name = "GetProductsForCategory")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public IActionResult GetProductsForCategory(int categoryId)
+        {
+            var product = _productRepository.GetProductsForCategory(categoryId);
+            if (product.Count == 0) return NotFound($"El producto con la categoría {categoryId} no existe.");
+
+            var productDto = _mapper.Map<List<ProductDto>>(product);
+
+            return Ok(productDto);
+        }
+
+        [HttpGet("searchProductByNameDescription/{searchTem}", Name = "SearchProducts")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public IActionResult SearchProducts(string searchTem)
+        {
+            var products = _productRepository.SearchProducts(searchTem);
+            if (products.Count == 0) return NotFound($"El producto con el nombre o descripción '{searchTem}' no existe.");
+
+            var productDto = _mapper.Map<List<ProductDto>>(products);
+
+            return Ok(productDto);
         }
 
     }

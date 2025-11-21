@@ -61,6 +61,7 @@ public class ProductRepository : IProductRepository
     if (categoryId <= 0) return new List<Product>();
 
     return _db.Products
+      .Include(p => p.Category)
       .Where(p => p.CategoryId == categoryId)
       .OrderBy(p => p.Name)
       .ToList();
@@ -87,12 +88,17 @@ public class ProductRepository : IProductRepository
     return _db.SaveChanges() >= 0;
   }
 
-  public ICollection<Product> SearchProduct(string name)
+  public ICollection<Product> SearchProducts(string searchTem)
   {
     IQueryable<Product> query = _db.Products;
-    if (!string.IsNullOrEmpty(name))
+    var searchTemLowered = searchTem.ToLower().Trim();
+    if (!string.IsNullOrEmpty(searchTem))
     {
-      query = query.Where(p => p.Name.ToLower().Trim() == name.ToLower().Trim());
+      query = query.Include(p => p.Category)
+      .Where(
+        p => p.Name.ToLower().Trim().Contains(searchTemLowered) ||
+        p.Description.ToLower().Trim().Contains(searchTemLowered)
+      );
     }
 
     return query.OrderBy(p => p.Name).ToList();
