@@ -33,14 +33,14 @@ public class UserRepository : IUserRepository
     _mapper = mapper;
   }
 
-  public User? GetUser(int id)
+  public ApplicationUser? GetUser(string id)
   {
-    return _db.Users.FirstOrDefault(u => u.Id == id);
+    return _db.ApplicationUsers.FirstOrDefault(u => u.Id == id);
   }
 
-  public ICollection<User> GetUsers()
+  public ICollection<ApplicationUser> GetUsers()
   {
-    return _db.Users.OrderBy(u => u.Username).ToList();
+    return _db.ApplicationUsers.OrderBy(u => u.UserName).ToList();
   }
 
   public bool IsUniqueUser(string username)
@@ -128,20 +128,40 @@ public class UserRepository : IUserRepository
     };
   }
 
-  public async Task<User> Register(CreateUserDto createUserDto)
+  public async Task<UserDataDto> Register(CreateUserDto createUserDto)
   {
-    var encriptedPassword = BCrypt.Net.BCrypt.HashPassword(createUserDto.Password);
+    if (string.IsNullOrEmpty(createUserDto.Username))
+      throw new ArgumentNullException("El UserName es requerido.");
 
-    var user = new User()
+    if (createUserDto.Password == null)
+      throw new ArgumentNullException("El Password es requerido.");
+
+    var user = new ApplicationUser()
     {
-      Username = createUserDto.Username ?? "No Username",
-      Name = createUserDto.Name,
-      Role = createUserDto.Role,
-      Password = encriptedPassword
+      UserName = createUserDto.Username,
+      Email = createUserDto.Username,
+      NormalizedEmail = createUserDto.Username.ToUpper(),
+      Name = createUserDto.Name
     };
 
-    _db.Users.Add(user);
-    await _db.SaveChangesAsync();
-    return user;
+    var result = await _userManager.CreateAsync(user, createUserDto.Password);
+    if (result.Succeeded)
+    {
+      var userRole = createUserDto.Role ?? "User";
+      var roleExists = await _roleManager.RoleExistsAsync(userRole);
+      if (!roleExists)
+      {
+        var identityRole = new IdentityRole(userRole);
+        await _roleManager.CreateAsync(identityRole);
+      }
+
+      await _userManager.AddToRoleAsync(user, userRole);
+
+      var createdUser = _db.ApplicationUsers.FirstOrDefault(u => u.UserName == createUserDto.Username);
+      return _mapper.Map<UserDataDto>(createdUser);
+    }
+
+    var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+    throw new ApplicationException($"No se pudo realizar el registro: {errors}");
   }
 }

@@ -3,13 +3,13 @@ using ApiEcommerce.Models.Dtos;
 
 public interface IUserRepository
 {
-  ICollection<User> GetUsers();
+  ICollection<ApplicationUser> GetUsers();
 
-  User? GetUser(int id);
+  ApplicationUser? GetUser(string id);
 
   bool IsUniqueUser(string username);
 
   Task<UserLoginResponseDto> Login(UserLoginDto userLoginDto);
 
-  Task<User> Register(CreateUserDto createUserDto);
+  Task<UserDataDto> Register(CreateUserDto createUserDto);
 }
