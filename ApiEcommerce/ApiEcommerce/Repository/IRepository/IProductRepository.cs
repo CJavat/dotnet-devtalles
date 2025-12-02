@@ -1,12 +1,12 @@
-using ApiEcommerce.Models;
+namespace ApiEcommerce.Repository.IRepository;
 
 public interface IProductRepository
 {
   ICollection<Product> GetProducts();
   ICollection<Product> GetProductsForCategory(int categoryId);
-  ICollection<Product> SearchProducts(string searchTerm);
+  ICollection<Product> SearchProducts(string name);
   Product? GetProduct(int id);
-  bool BuyProduct(string productName, int quantity);
+  bool BuyProduct(string name, int quantity);
   bool ProductExists(int id);
   bool ProductExists(string name);
   bool CreateProduct(Product product);

@@ -10,7 +10,7 @@ public class CreateProductDto
 
   public decimal Price { get; set; }
 
-  public string ImgUrl { get; set; } = string.Empty;
+  public string ImageUrl { get; set; } = string.Empty;
 
   public string SKU { get; set; } = string.Empty;
 

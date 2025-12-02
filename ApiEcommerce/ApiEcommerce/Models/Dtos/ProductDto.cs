@@ -1,5 +1,3 @@
-using System;
-
 namespace ApiEcommerce.Models.Dtos;
 
 public class ProductDto
@@ -12,7 +10,7 @@ public class ProductDto
 
   public decimal Price { get; set; }
 
-  public string ImgUrl { get; set; } = string.Empty;
+  public string ImageUrl { get; set; } = string.Empty;
 
   public string SKU { get; set; } = string.Empty;
 
@@ -23,6 +21,5 @@ public class ProductDto
   public DateTime? UpdateDate { get; set; } = null;
 
   public int CategoryId { get; set; }
-
   public string CategoryName { get; set; } = string.Empty;
 }

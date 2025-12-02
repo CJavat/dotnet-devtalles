@@ -3,9 +3,6 @@ using System.Security.Claims;
 using System.Text;
 using ApiEcommerce.Models;
 using ApiEcommerce.Models.Dtos;
-using ApiEcommerce.Repository.IRepository;
-using AutoMapper;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -13,27 +10,13 @@ namespace ApiEcommerce.Repository;
 
 public class UserRepository : IUserRepository
 {
-
   public readonly ApplicationDbContext _db;
   private string? secretKey;
 
-  private readonly UserManager<ApplicationUser> _userManager;
-  private readonly RoleManager<ApplicationUser> _roleManager;
-  private readonly IMapper _mapper;
-
-  public UserRepository(
-    ApplicationDbContext db,
-    IConfiguration configuration,
-    UserManager<ApplicationUser> userManager,
-    RoleManager<ApplicationUser> roleManager,
-    IMapper mapper
-  )
+  public UserRepository(ApplicationDbContext db, IConfiguration configuration)
   {
     _db = db;
-    secretKey = configuration.GetValue<string>("ApiSettings:SecretKey"); // Para leer la variable de entorno.
-    _userManager = userManager;
-    _roleManager = roleManager;
-    _mapper = mapper;
+    secretKey = configuration.GetValue<string>("ApiSettings:SecretKey");
   }
 
   public User? GetUser(int id)
@@ -53,72 +36,88 @@ public class UserRepository : IUserRepository
 
   public async Task<UserLoginResponseDto> Login(UserLoginDto userLoginDto)
   {
-    if (string.IsNullOrEmpty(userLoginDto.Username)) return UserResponse("", "El username es obligatorio.");
+    if (string.IsNullOrEmpty(userLoginDto.Username))
+    {
+      return new UserLoginResponseDto()
+      {
+        Token = "",
+        User = null,
+        Message = "El Username es requerido."
+      };
+    }
 
-    var user = await _db.ApplicationUser.FirstOrDefaultAsync<ApplicationUser>(u => u.UserName != null && u.UserName.ToLower().Trim() == userLoginDto.Username.ToLower().Trim());
+    var user = await _db.Users.FirstOrDefaultAsync<User>(u => u.Username.ToLower().Trim() == userLoginDto.Username.ToLower().Trim());
+    if (user == null)
+    {
+      return new UserLoginResponseDto()
+      {
+        Token = "",
+        User = null,
+        Message = "Username no encontrado."
+      };
+    }
 
-    if (user == null) return UserResponse("", "El username no encontrado.");
+    if (!BCrypt.Net.BCrypt.Verify(userLoginDto.Password, user.Password))
+    {
+      return new UserLoginResponseDto()
+      {
+        Token = "",
+        User = null,
+        Message = "Credenciales incorrectas."
+      };
+    }
 
-    //Sin usar identity -> if (!BCrypt.Net.BCrypt.Verify(userLoginDto.Password, user.Password)) return UserResponse("", "La contraseña es incorrecta.");
-
-    if (userLoginDto.Password == null) return UserResponse("", "El password es obligatorio.");
-    bool isValid = await _userManager.CheckPasswordAsync(user, userLoginDto.Password);
-    if (!isValid) return UserResponse("", "Las credenciales son incorrectas.");
-
-
-    // JWT Generate
+    //JWT
     var handlerToken = new JwtSecurityTokenHandler();
-    if (string.IsNullOrWhiteSpace(secretKey)) throw new InvalidOperationException("El SecretKey no está configurada.");
 
-    var roles = await _userManager.GetRolesAsync(user); // Identity
+    if (string.IsNullOrWhiteSpace(secretKey)) throw new InvalidOperationException("SecretKey no está configurado.");
     var key = Encoding.UTF8.GetBytes(secretKey);
+
     var tokenDescriptor = new SecurityTokenDescriptor
     {
       Subject = new ClaimsIdentity(new[]
       {
         new Claim("id", user.Id.ToString()),
-        new Claim("username", user.UserName ?? string.Empty),
-        new Claim(ClaimTypes.Role, roles.FirstOrDefault() ?? string.Empty),
+        new Claim("username", user.Username),
+        new Claim(ClaimTypes.Role, user.Role ?? string.Empty)
       }),
       Expires = DateTime.UtcNow.AddHours(2),
-      SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+      SigningCredentials = new SigningCredentials(
+        new SymmetricSecurityKey(key),
+        SecurityAlgorithms.HmacSha256Signature
+      )
     };
 
     var token = handlerToken.CreateToken(tokenDescriptor);
 
-    return UserResponse(
-      handlerToken.WriteToken(token),
-      "Usuario Logeado Correctamente.",
-      _mapper.Map<UserDataDto>(user)
-    );
+    return new UserLoginResponseDto()
+    {
+      Token = handlerToken.WriteToken(token),
+      User = new UserRegisterDto()
+      {
+        Username = user.Username,
+        Name = user.Name,
+        Role = user.Role,
+        Password = user.Password ?? ""
+      },
+      Message = "Usuario logeado correzctamente."
+    };
   }
 
   public async Task<User> Register(CreateUserDto createUserDto)
   {
     var encriptedPassword = BCrypt.Net.BCrypt.HashPassword(createUserDto.Password);
+
     var user = new User()
     {
       Username = createUserDto.Username ?? "No Username",
       Name = createUserDto.Name,
-      Password = encriptedPassword,
       Role = createUserDto.Role,
+      Password = encriptedPassword
     };
 
     _db.Users.Add(user);
-
     await _db.SaveChangesAsync();
-
     return user;
-  }
-
-  // Método para regresar un mensaje personalizado.
-  private UserLoginResponseDto UserResponse(string token, string message, UserDataDto? user = null)
-  {
-    return new UserLoginResponseDto()
-    {
-      Token = token,
-      User = user,
-      Message = message
-    };
   }
 }

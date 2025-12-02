@@ -1,3 +1,4 @@
+using System;
 using ApiEcommerce.Repository.IRepository;
 
 namespace ApiEcommerce.Repository;
@@ -9,6 +10,11 @@ public class CategoryRepository : ICategoryRepository
   public CategoryRepository(ApplicationDbContext db)
   {
     _db = db;
+  }
+
+  public ICollection<Category> GetCategories()
+  {
+    return _db.Categories.OrderBy(c => c.Name).ToList();
   }
 
   public bool CategoryExists(int id)
@@ -32,13 +38,7 @@ public class CategoryRepository : ICategoryRepository
   public bool DeleteCategory(Category category)
   {
     _db.Categories.Remove(category);
-
     return Save();
-  }
-
-  public ICollection<Category> GetCategories()
-  {
-    return _db.Categories.OrderBy(c => c.Name).ToList();
   }
 
   public Category? GetCategory(int id)
@@ -48,14 +48,13 @@ public class CategoryRepository : ICategoryRepository
 
   public bool Save()
   {
-    return _db.SaveChanges() >= 0 ? true : false;
+    return _db.SaveChanges() >= 0;
   }
 
   public bool UpdateCategory(Category category)
   {
     category.CreationDate = DateTime.Now;
     _db.Categories.Update(category);
-
     return Save();
   }
 }
