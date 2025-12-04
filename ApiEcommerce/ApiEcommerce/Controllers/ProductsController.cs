@@ -59,7 +59,7 @@ namespace ApiEcommerce.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult CreateProduct([FromBody] CreateProductDto createProductDto)
+        public IActionResult CreateProduct([FromForm] CreateProductDto createProductDto)
         {
             if (createProductDto == null) return BadRequest(ModelState);
 
@@ -75,7 +75,16 @@ namespace ApiEcommerce.Controllers
                 return BadRequest(ModelState);
             }
 
+            //? Agregando imagen.
             var product = _mapper.Map<Product>(createProductDto);
+            if (createProductDto.Image != null)
+            {
+                UploadProductImage(createProductDto, product);
+            }
+            else
+            {
+                product.ImageUrl = "https://placehold.co/300x300";
+            }
 
             if (!_productRepository.CreateProduct(product))
             {
@@ -146,7 +155,7 @@ namespace ApiEcommerce.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult UpdateProduct(int productId, [FromBody] UpdateProductDto updateProductDto)
+        public IActionResult UpdateProduct(int productId, [FromForm] UpdateProductDto updateProductDto)
         {
             if (updateProductDto == null) return BadRequest(ModelState);
 
@@ -164,6 +173,16 @@ namespace ApiEcommerce.Controllers
 
             var product = _mapper.Map<Product>(updateProductDto);
             product.ProductId = productId;
+
+            //? Agregando imagen.
+            if (updateProductDto.Image != null)
+            {
+                UploadProductImage(updateProductDto, product);
+            }
+            else
+            {
+                product.ImageUrl = "https://placehold.co/300x300";
+            }
 
             if (!_productRepository.UpdateProduct(product))
             {
@@ -194,6 +213,32 @@ namespace ApiEcommerce.Controllers
             }
 
             return NoContent();
+        }
+
+        private void UploadProductImage(dynamic productDto, Product product)
+        {
+            string fileName = product.ProductId + Guid.NewGuid().ToString() + Path.GetExtension(productDto.Image.FileName);
+
+            var imagesFolder = Path.Combine(Directory.GetCurrentDirectory() + "/wwwroot", "ProductsImages");
+            if (!Directory.Exists(imagesFolder))
+            {//? Crear un directorio sino existe.
+                Directory.CreateDirectory(imagesFolder);
+            }
+
+            var filePath = Path.Combine(imagesFolder, fileName);
+
+            FileInfo file = new FileInfo(filePath);
+            if (file.Exists)
+            {
+                file.Delete();
+            }
+
+            using var fileStream = new FileStream(filePath, FileMode.Create);
+            productDto.Image.CopyTo(fileStream);
+
+            var baseUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host.Value}{HttpContext.Request.PathBase.Value}";
+            product.ImageUrl = $"{baseUrl}/ProductsImages/{fileName}";
+            product.ImageUrlLocal = filePath;
         }
 
     }
