@@ -1,7 +1,8 @@
 using ApiEcommerce.Models.Dtos;
+using ApiEcommerce.Models.Dtos.Responses;
 using ApiEcommerce.Repository.IRepository;
 using Asp.Versioning;
-using AutoMapper;
+using Mapster;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,13 +17,12 @@ namespace ApiEcommerce.Controllers
     {
         private readonly IProductRepository _productRepository;
         private readonly ICategoryRepository _categoryRepository;
-        private readonly IMapper _mapper;
+        // Eliminado IMapper, Mapster se usa de forma estática
 
-        public ProductsController(IProductRepository productRepository, ICategoryRepository categoryRepository, IMapper mapper)
+        public ProductsController(IProductRepository productRepository, ICategoryRepository categoryRepository)
         {
             _productRepository = productRepository;
             _categoryRepository = categoryRepository;
-            _mapper = mapper;
         }
 
         [AllowAnonymous]
@@ -32,7 +32,7 @@ namespace ApiEcommerce.Controllers
         public IActionResult GetProducts()
         {
             var products = _productRepository.GetProducts();
-            var productsDto = _mapper.Map<List<ProductDto>>(products);
+            var productsDto = products.Adapt<List<ProductDto>>();
 
             return Ok(productsDto);
         }
@@ -48,9 +48,40 @@ namespace ApiEcommerce.Controllers
             var product = _productRepository.GetProduct(productId);
             if (product == null) return NotFound($"El producto con el id {productId} no existe.");
 
-            var productDto = _mapper.Map<ProductDto>(product);
+            var productDto = product.Adapt<ProductDto>();
 
             return Ok(productDto);
+        }
+
+        [AllowAnonymous]
+        [HttpGet("Paged", Name = "GetProductsInPage")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public IActionResult GetProductsInPage([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        {
+            if (pageNumber < 1 || pageSize < 1)
+                return BadRequest("El número de página y el tamaño de página deben ser mayores que cero.");
+
+            var totalProducts = _productRepository.GetTotalProducts();
+            var totalPages = (int)Math.Ceiling((double)totalProducts / pageSize);
+            if (pageNumber > totalPages)
+                return BadRequest($"El número de página excede el total de páginas disponibles ({totalPages}).");
+
+            var products = _productRepository.GetProductsInPages(pageNumber, pageSize);
+            var productsDto = products.Adapt<List<ProductDto>>();
+
+            var paginationResponse = new PaginationResponse<ProductDto>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+                Items = productsDto
+
+            };
+
+            return Ok(paginationResponse);
         }
 
         [HttpPost]
@@ -76,7 +107,7 @@ namespace ApiEcommerce.Controllers
             }
 
             //? Agregando imagen.
-            var product = _mapper.Map<Product>(createProductDto);
+            var product = createProductDto.Adapt<Product>();
             if (createProductDto.Image != null)
             {
                 UploadProductImage(createProductDto, product);
@@ -93,7 +124,7 @@ namespace ApiEcommerce.Controllers
             }
 
             var createdProduct = _productRepository.GetProduct(product.ProductId);
-            var productDto = _mapper.Map<ProductDto>(createdProduct);
+            var productDto = createdProduct.Adapt<ProductDto>();
             return CreatedAtRoute("GetProduct", new { productId = product.ProductId }, productDto);
         }
 
@@ -107,7 +138,7 @@ namespace ApiEcommerce.Controllers
             var product = _productRepository.GetProductsForCategory(categoryId);
             if (product.Count == 0) return NotFound($"El producto con la categoría {categoryId} no existe.");
 
-            var productDto = _mapper.Map<List<ProductDto>>(product);
+            var productDto = product.Adapt<List<ProductDto>>();
 
             return Ok(productDto);
         }
@@ -122,7 +153,7 @@ namespace ApiEcommerce.Controllers
             var products = _productRepository.SearchProducts(searchTem);
             if (products.Count == 0) return NotFound($"El producto con el nombre o descripción '{searchTem}' no existe.");
 
-            var productDto = _mapper.Map<List<ProductDto>>(products);
+            var productDto = products.Adapt<List<ProductDto>>();
 
             return Ok(productDto);
         }
@@ -171,7 +202,7 @@ namespace ApiEcommerce.Controllers
                 return BadRequest(ModelState);
             }
 
-            var product = _mapper.Map<Product>(updateProductDto);
+            var product = updateProductDto.Adapt<Product>();
             product.ProductId = productId;
 
             //? Agregando imagen.

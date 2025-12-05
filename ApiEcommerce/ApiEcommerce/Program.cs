@@ -1,5 +1,6 @@
 using System.Text;
 using ApiEcommerce.Constants;
+using ApiEcommerce.Data;
 using ApiEcommerce.Models;
 using ApiEcommerce.Repository;
 using ApiEcommerce.Repository.IRepository;
@@ -14,8 +15,15 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+var dbConnectionString = builder.Configuration.GetConnectionString("ConexionSql");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("ConexionSql"))
+  options.UseSqlServer(dbConnectionString)
+  .UseSeeding((context, _) =>
+  {
+      var appContext = (ApplicationDbContext)context;
+      DataSeeder.SeedData(appContext);
+
+  })
 );
 
 builder.Services.AddResponseCaching(options =>
@@ -27,7 +35,11 @@ builder.Services.AddResponseCaching(options =>
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddAutoMapper(typeof(Program).Assembly);
+
+// Registrar configuraciones de Mapster
+ApiEcommerce.Mapping.CategoryMappingConfig.Register();
+ApiEcommerce.Mapping.ProductMappingConfig.Register();
+ApiEcommerce.Mapping.UserMappingConfig.Register();
 
 //? Para gestionar USUARIOS Y ROLES de forma integrada.
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
